@@ -4,8 +4,19 @@ import {
   PrimaryKey,
   Model,
   Table,
+  Unique,
 } from 'sequelize-typescript';
 import { UUIDV4 } from 'sequelize';
+
+export interface UserDTO {
+  id: string;
+}
+
+export interface CreateUserDTO {
+  email: string;
+  name: string;
+  password: string;
+}
 
 @Table
 export class User extends Model {
@@ -14,6 +25,7 @@ export class User extends Model {
   @Column
   id: string;
 
+  @Unique
   @Column
   email: string;
 
