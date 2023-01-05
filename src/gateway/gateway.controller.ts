@@ -11,13 +11,13 @@ import {
 import { AuthService } from 'src/auth/auth.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { LocalAuthGuard } from 'src/auth/local-auth.guard';
-import { UserService } from 'src/user/user.service';
+import { UsersService } from 'src/users/users.service';
 // import { DatabaseError, ValidationError } from 'sequelize';
 
 @Controller('v1')
 export class GatewayController {
   constructor(
-    private readonly userService: UserService,
+    private readonly userService: UsersService,
     private readonly authService: AuthService,
   ) {}
 

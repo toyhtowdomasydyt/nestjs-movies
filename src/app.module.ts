@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
+import { UsersModule } from './users/users.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { MoviesModule } from './movies/movies.module';
 
 @Module({
   imports: [
@@ -13,8 +14,9 @@ import { GatewayModule } from './gateway/gateway.module';
       synchronize: true,
     }),
     AuthModule,
-    UserModule,
+    UsersModule,
     GatewayModule,
+    MoviesModule,
   ],
 })
 export class AppModule {}

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { GatewayController } from './gateway.controller';
-import { UserModule } from 'src/user/user.module';
+import { UsersModule } from 'src/users/users.module';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [UserModule, AuthModule],
+  imports: [UsersModule, AuthModule],
   controllers: [GatewayController],
 })
 export class GatewayModule {}
