@@ -16,12 +16,12 @@ interface JWTUser {
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userService: UsersService,
+    private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
   ) {}
 
   async validateLocalUser(localUser: LocalUser) {
-    const user = await this.userService.findOne(localUser.email);
+    const user = await this.usersService.findOne(localUser.email);
 
     if (user) {
       const passwordMatch = await bcrypt.compare(
@@ -42,7 +42,7 @@ export class AuthService {
   }
 
   async validateJWTUser(jwtUser: JWTUser) {
-    const user = await this.userService.findOne(jwtUser.email);
+    const user = await this.usersService.findOne(jwtUser.email);
 
     if (user && user.id === jwtUser.id) {
       return {
