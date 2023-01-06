@@ -12,6 +12,7 @@ export const ERROR_CODES = {
   MOVIE_EXISTS: 'MOVIE_EXISTS',
   FORMAT_ERROR: 'FORMAT_ERROR',
   MOVIE_NOT_FOUND: 'MOVIE_NOT_FOUND',
+  ITERNAL_SERVER_ERROR: 'ITERNAL_SERVER_ERROR',
 };
 
 export class DomainException extends Error {
@@ -60,8 +61,11 @@ export class DomainExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    response.status(HttpStatus.UNAUTHORIZED).json({
+    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       status: 0,
+      error: {
+        code: ERROR_CODES.ITERNAL_SERVER_ERROR,
+      },
     });
   }
 }
