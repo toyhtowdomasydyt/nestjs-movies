@@ -39,7 +39,7 @@ Pull and run image from https://hub.docker.com/repository/docker/toyhtowdomasydy
 
 ```bash
 # run
-$ docker run -p 3000:3000 -e HTTP_PORT=3000 -e JWT_SECRET=secret -e JWT_EXPIRES_IN=60s nest-movies
+$ docker run -p 3000:3000 -e HTTP_PORT=3000 -e JWT_SECRET=secret -e JWT_EXPIRES_IN=60s toyhtowdomasydyt/nest-movies
 ```
 
 ### Environmet variables

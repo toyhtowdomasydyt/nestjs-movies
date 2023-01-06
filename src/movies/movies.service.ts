@@ -145,62 +145,82 @@ export class MoviesService {
   }
 
   async import(readableStream: Readable) {
-    let parsedMovieEntries = [];
-    const moviesEntries = [];
-    const fieldMap = {
-      title: 'title',
-      'release year': 'year',
-      format: 'format',
-      stars: 'actors',
-    };
-    const fieldParsers = {
-      title: (v) => v,
-      year: (v) => Number(v),
-      format: (v) => v,
-      actors: (v) =>
-        v.split(', ').map((name) => ({
-          name,
-        })),
-    };
+    try {
+      let parsedMovieEntries = [];
+      const moviesEntries = [];
+      const fieldMap = {
+        title: 'title',
+        'release year': 'year',
+        format: 'format',
+        stars: 'actors',
+      };
+      const fieldParsers = {
+        title: (v) => v,
+        year: (v) => Number(v),
+        format: (v) => v,
+        actors: (v) =>
+          v.split(', ').map((name) => ({
+            name,
+          })),
+      };
 
-    const rl = readline.createInterface({
-      input: readableStream,
-    });
+      const rl = readline.createInterface({
+        input: readableStream,
+      });
 
-    rl.on('line', (line) => {
-      if (line) {
-        const [field, data] = line.split(':');
-        const formattedField = fieldMap[field.trim().toLowerCase()];
-        const dataValue = fieldParsers[formattedField](data.trim());
+      rl.on('line', (line) => {
+        if (line) {
+          const [field, data] = line.split(':');
+          const formattedField = fieldMap[field.trim().toLowerCase()];
+          const dataValue = fieldParsers[formattedField](data.trim());
 
-        parsedMovieEntries.push([formattedField, dataValue]);
-        return;
+          parsedMovieEntries.push([formattedField, dataValue]);
+          return;
+        }
+
+        if (parsedMovieEntries.length > 0) {
+          moviesEntries.push(parsedMovieEntries);
+        }
+
+        parsedMovieEntries = [];
+      });
+
+      await events.once(rl, 'close');
+
+      const movies = moviesEntries.map((entries) =>
+        Object.fromEntries(entries),
+      );
+
+      const savedMovies = await this.movieModel.bulkCreate(movies, {
+        include: {
+          model: Actor,
+          as: 'actors',
+        },
+      });
+
+      const moviesCount = await this.movieModel.count();
+
+      return {
+        data: savedMovies,
+        meta: {
+          imported: savedMovies.length,
+          total: moviesCount,
+        },
+      };
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        const validationErrorItem = error.errors[0];
+        const description = {
+          fields: {
+            [validationErrorItem.path]:
+              validationErrorItem.validatorKey.toUpperCase(),
+          },
+          code: ERROR_CODES.MOVIE_EXISTS,
+        };
+        throw new DomainException(HttpStatus.BAD_REQUEST, description);
       }
 
-      if (parsedMovieEntries.length > 0) {
-        moviesEntries.push(parsedMovieEntries);
-      }
-
-      parsedMovieEntries = [];
-    });
-
-    await events.once(rl, 'close');
-
-    const movies = moviesEntries.map((entries) => Object.fromEntries(entries));
-    const savedMovies = await this.movieModel.bulkCreate(movies, {
-      include: {
-        model: Actor,
-        as: 'actors',
-      },
-    });
-    const moviesCount = await this.movieModel.count();
-
-    return {
-      data: savedMovies,
-      meta: {
-        imported: savedMovies.length,
-        total: moviesCount,
-      },
-    };
+      throw error;
+    }
   }
 }
