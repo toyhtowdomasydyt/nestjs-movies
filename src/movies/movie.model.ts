@@ -1,4 +1,11 @@
-import { Column, Model, Table, DataType, HasMany } from 'sequelize-typescript';
+import {
+  Column,
+  Model,
+  Table,
+  DataType,
+  HasMany,
+  Unique,
+} from 'sequelize-typescript';
 import { Actor } from './actor.model';
 
 export interface MovieDTO {
@@ -10,6 +17,7 @@ export interface MovieDTO {
 
 @Table
 export class Movie extends Model {
+  @Unique
   @Column
   title: string;
 

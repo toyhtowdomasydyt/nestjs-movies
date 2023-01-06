@@ -1,7 +1,9 @@
+import { HttpStatus } from '@nestjs/common';
 import { Strategy } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { DomainException, ERROR_CODES } from 'src/gateway/exception.filter';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
@@ -13,7 +15,15 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     const user = await this.authService.validateLocalUser({ email, password });
 
     if (!user) {
-      throw new UnauthorizedException();
+      throw new DomainException(HttpStatus.UNAUTHORIZED, {
+        error: {
+          fields: {
+            email: ERROR_CODES.AUTHENTICATION_FAILED,
+            password: ERROR_CODES.AUTHENTICATION_FAILED,
+          },
+          code: ERROR_CODES.AUTHENTICATION_FAILED,
+        },
+      });
     }
 
     return user;

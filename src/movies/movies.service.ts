@@ -1,11 +1,12 @@
 import { Readable } from 'node:stream';
 import * as readline from 'node:readline';
 import * as events from 'node:events';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op } from 'sequelize';
+import { Op, ValidationError } from 'sequelize';
 import { Movie, MovieDTO } from './movie.model';
 import { Actor } from './actor.model';
+import { DomainException, ERROR_CODES } from 'src/gateway/exception.filter';
 
 export interface MovieQueryOptions {
   limit: number;
@@ -25,17 +26,33 @@ export class MoviesService {
   ) {}
 
   async create(movieData: MovieDTO) {
-    const movie = await this.movieModel.create(
-      {
-        title: movieData.title,
-        year: movieData.year,
-        format: movieData.format,
-        actors: [...movieData.actors.map((name) => ({ name }))],
-      },
-      { include: Actor },
-    );
+    try {
+      const movie = await this.movieModel.create(
+        {
+          title: movieData.title,
+          year: movieData.year,
+          format: movieData.format,
+          actors: [...movieData.actors.map((name) => ({ name }))],
+        },
+        { include: Actor },
+      );
 
-    return movie;
+      return movie;
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        const validationErrorItem = error.errors[0];
+        const description = {
+          fields: {
+            [validationErrorItem.path]:
+              validationErrorItem.validatorKey.toUpperCase(),
+          },
+          code: ERROR_CODES.MOVIE_EXISTS,
+        };
+        throw new DomainException(HttpStatus.BAD_REQUEST, description);
+      }
+
+      throw error;
+    }
   }
 
   async findByID(id: number) {
@@ -45,7 +62,14 @@ export class MoviesService {
     });
 
     if (!movie) {
-      throw new Error('Movie not found');
+      throw new DomainException(HttpStatus.NOT_FOUND, {
+        error: {
+          fields: {
+            id,
+          },
+          code: ERROR_CODES.MOVIE_NOT_FOUND,
+        },
+      });
     }
 
     return movie;

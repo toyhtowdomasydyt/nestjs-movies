@@ -14,6 +14,7 @@ import {
   Param,
   Delete,
   Patch,
+  UseFilters,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from 'src/auth/auth.service';
@@ -21,7 +22,9 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { LocalAuthGuard } from 'src/auth/local-auth.guard';
 import { MoviesService, MovieQueryOptions } from 'src/movies/movies.service';
 import { UsersService } from 'src/users/users.service';
+import { DomainExceptionFilter } from './exception.filter';
 
+@UseFilters(new DomainExceptionFilter())
 @Controller('v1')
 export class GatewayController {
   constructor(

@@ -1,20 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User, CreateUserDTO } from 'src/users/user.model';
 import * as bcrypt from 'bcrypt';
+import { ValidationError } from 'sequelize';
+import { DomainException, ERROR_CODES } from 'src/gateway/exception.filter';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User) private readonly userModel: typeof User) {}
 
   async create(user: CreateUserDTO): Promise<User> {
-    const passwordHash = await bcrypt.hash(user.password, 10);
+    try {
+      const passwordHash = await bcrypt.hash(user.password, 10);
 
-    return this.userModel.create({
-      email: user.email,
-      name: user.name,
-      password: passwordHash,
-    });
+      return await this.userModel.create({
+        email: user.email,
+        name: user.name,
+        password: passwordHash,
+      });
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        const validationErrorItem = error.errors[0];
+        const description = {
+          fields: {
+            [validationErrorItem.path]:
+              validationErrorItem.validatorKey.toUpperCase(),
+          },
+          code: ERROR_CODES.EMAIL_NOT_UNIQUE,
+        };
+        throw new DomainException(HttpStatus.BAD_REQUEST, description);
+      }
+
+      throw error;
+    }
   }
 
   findOne(email: string): Promise<User> {
