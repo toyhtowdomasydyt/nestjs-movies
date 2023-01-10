@@ -155,7 +155,6 @@ export class DomainExceptionFilter implements ExceptionFilter {
   catch(exception: Error, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    console.dir(exception, { depth: null });
 
     try {
       if (exception instanceof DomainException) {
