@@ -14,6 +14,14 @@ import { MoviesModule } from './movies/movies.module';
       storage: 'db/database.sqlite',
       autoLoadModels: true,
       synchronize: true,
+      define: {
+        charset: 'utf8',
+        collate: 'UNICODE',
+      },
+      dialectOptions: {
+        charset: 'utf8',
+        collate: 'UNICODE',
+      },
     }),
     AuthModule,
     UsersModule,

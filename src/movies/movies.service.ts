@@ -3,7 +3,7 @@ import * as readline from 'node:readline';
 import * as events from 'node:events';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op, Transaction, ValidationError } from 'sequelize';
+import { Op, Transaction, ValidationError, fn } from 'sequelize';
 import { Movie } from './movie.model';
 import { CreateMovieDTO } from './createMovie.dto';
 import { Actor } from './actor.model';
@@ -12,6 +12,7 @@ import { validateOrReject } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { parseByLine } from './importMovie.utils';
 import { Sequelize } from 'sequelize-typescript';
+import { sortMoviesAlphabetically } from './queryMovie.utils';
 
 export interface MovieQueryOptions {
   limit: number;
@@ -137,17 +138,18 @@ export class MoviesService {
     const movies = await this.movieModel.findAll({
       offset,
       limit,
-      order: [[sort, order]],
+      order: [[Sequelize.fn('lower', Sequelize.col(sort)), order]],
       include: {
         model: Actor,
         where: whereCondition,
       },
     });
 
+    const sortedMovies = sortMoviesAlphabetically(movies, sort);
     const moviesCount = await this.movieModel.count();
 
     return {
-      data: movies,
+      data: sortedMovies,
       meta: {
         total: moviesCount,
       },
