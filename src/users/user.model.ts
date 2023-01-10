@@ -8,16 +8,6 @@ import {
 } from 'sequelize-typescript';
 import { UUIDV4 } from 'sequelize';
 
-export interface UserDTO {
-  id: string;
-}
-
-export interface CreateUserDTO {
-  email: string;
-  name: string;
-  password: string;
-}
-
 @Table
 export class User extends Model {
   @PrimaryKey

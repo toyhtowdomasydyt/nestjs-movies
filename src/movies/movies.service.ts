@@ -3,10 +3,15 @@ import * as readline from 'node:readline';
 import * as events from 'node:events';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op, ValidationError } from 'sequelize';
-import { Movie, MovieDTO } from './movie.model';
+import { Op, Transaction, ValidationError } from 'sequelize';
+import { Movie } from './movie.model';
+import { CreateMovieDTO } from './createMovie.dto';
 import { Actor } from './actor.model';
 import { DomainException, ERROR_CODES } from 'src/gateway/exception.filter';
+import { validateOrReject } from 'class-validator';
+import { plainToClass } from 'class-transformer';
+import { parseByLine } from './importMovie.utils';
+import { Sequelize } from 'sequelize-typescript';
 
 export interface MovieQueryOptions {
   limit: number;
@@ -23,18 +28,19 @@ export class MoviesService {
   constructor(
     @InjectModel(Movie) private readonly movieModel: typeof Movie,
     @InjectModel(Actor) private readonly actorModel: typeof Actor,
+    private readonly sequelize: Sequelize,
   ) {}
 
-  async create(movieData: MovieDTO) {
+  async create(movieData: CreateMovieDTO, t?: Transaction) {
     try {
       const movie = await this.movieModel.create(
         {
           title: movieData.title,
           year: movieData.year,
           format: movieData.format,
-          actors: [...movieData.actors.map((name) => ({ name }))],
+          actors: movieData.actors,
         },
-        { include: Actor },
+        { include: Actor, transaction: t },
       );
 
       return movie;
@@ -45,6 +51,9 @@ export class MoviesService {
           fields: {
             [validationErrorItem.path]:
               validationErrorItem.validatorKey.toUpperCase(),
+          },
+          values: {
+            [validationErrorItem.path]: validationErrorItem.value,
           },
           code: ERROR_CODES.MOVIE_EXISTS,
         };
@@ -81,14 +90,15 @@ export class MoviesService {
     await movie.destroy();
   }
 
-  async update(id: number, movieData: MovieDTO) {
+  async update(id: number, movieData: CreateMovieDTO) {
     const movie = await this.findByID(id);
 
     movie.set({
-      ...movieData,
+      year: movieData.year,
+      format: movieData.format,
       actors:
         movieData.actors && Array.isArray(movieData.actors)
-          ? movieData.actors.map((name) => ({ name }))
+          ? movieData.actors
           : movie.actors,
     });
     await movie.save();
@@ -146,58 +156,55 @@ export class MoviesService {
 
   async import(readableStream: Readable) {
     try {
-      let parsedMovieEntries = [];
-      const moviesEntries = [];
-      const fieldMap = {
-        title: 'title',
-        'release year': 'year',
-        format: 'format',
-        stars: 'actors',
-      };
-      const fieldParsers = {
-        title: (v) => v,
-        year: (v) => Number(v),
-        format: (v) => v,
-        actors: (v) =>
-          v.split(', ').map((name) => ({
-            name,
-          })),
-      };
+      const { parse, moviesEntries } = parseByLine();
 
       const rl = readline.createInterface({
         input: readableStream,
       });
 
-      rl.on('line', (line) => {
-        if (line) {
-          const [field, data] = line.split(':');
-          const formattedField = fieldMap[field.trim().toLowerCase()];
-          const dataValue = fieldParsers[formattedField](data.trim());
-
-          parsedMovieEntries.push([formattedField, dataValue]);
-          return;
-        }
-
-        if (parsedMovieEntries.length > 0) {
-          moviesEntries.push(parsedMovieEntries);
-        }
-
-        parsedMovieEntries = [];
-      });
+      rl.on('line', parse);
 
       await events.once(rl, 'close');
 
-      const movies = moviesEntries.map((entries) =>
-        Object.fromEntries(entries),
+      const movies = await Promise.all(
+        moviesEntries.map(async (entries) => {
+          const createMovieData = Object.fromEntries(entries);
+          const createMovieDTO = plainToClass(CreateMovieDTO, createMovieData);
+
+          await validateOrReject(createMovieDTO);
+
+          return createMovieDTO;
+        }),
       );
 
-      const savedMovies = await this.movieModel.bulkCreate(movies, {
-        include: {
-          model: Actor,
-          as: 'actors',
-        },
-      });
+      const importedMovies = await this.sequelize.transaction(
+        async (t) =>
+          await Promise.allSettled(
+            movies.map((movie) => this.create(movie, t)),
+          ),
+      );
 
+      const importErrors = importedMovies
+        .filter((importResult) => importResult.status === 'rejected')
+        .map((result) => {
+          if (result.status === 'rejected') {
+            return result.reason.errorDescription;
+          }
+        });
+
+      if (importErrors.length > 0) {
+        throw new DomainException(HttpStatus.BAD_REQUEST, {
+          description: importErrors,
+        });
+      }
+
+      const savedMovies = importedMovies
+        .filter((importResult) => importResult.status === 'fulfilled')
+        .map((result) => {
+          if (result.status === 'fulfilled') {
+            return result.value;
+          }
+        });
       const moviesCount = await this.movieModel.count();
 
       return {

@@ -7,10 +7,6 @@ import {
 } from 'sequelize-typescript';
 import { Movie } from './movie.model';
 
-export interface ActorDTO {
-  name: string;
-}
-
 @Table
 export class Actor extends Model {
   @Column

@@ -8,13 +8,6 @@ import {
 } from 'sequelize-typescript';
 import { Actor } from './actor.model';
 
-export interface MovieDTO {
-  title: string;
-  year: string;
-  format: 'VHS' | 'DVD' | 'Blu-ray';
-  actors: Array<string>;
-}
-
 @Table
 export class Movie extends Model {
   @Unique
