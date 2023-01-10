@@ -3,7 +3,7 @@ import * as readline from 'node:readline';
 import * as events from 'node:events';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op, Transaction, ValidationError, fn } from 'sequelize';
+import { Op, Transaction, ValidationError } from 'sequelize';
 import { Movie } from './movie.model';
 import { CreateMovieDTO } from './createMovie.dto';
 import { Actor } from './actor.model';

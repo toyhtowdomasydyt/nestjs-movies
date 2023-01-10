@@ -2,7 +2,7 @@
 
 Nest app for saving movies info
 
-## Setup local dev environmet
+## Setup local dev environment
 
 ### Installation dependecies
 
@@ -35,14 +35,14 @@ $ docker run -p 3000:3000 -e HTTP_PORT=3000 -e JWT_SECRET=secret -e JWT_EXPIRES_
 
 ### Run docker image from DockerHub
 
-Pull and run image from https://hub.docker.com/repository/docker/toyhtowdomasydyt/nest-movies
+Pull and run image from https://hub.docker.com/r/toyhtowdomasydyt/nest-movies
 
 ```bash
 # run
 $ docker run -p 3000:3000 -e HTTP_PORT=3000 -e JWT_SECRET=secret -e JWT_EXPIRES_IN=60s toyhtowdomasydyt/nest-movies
 ```
 
-### Environmet variables
+### Environment variables
 
 `HTTP_PORT`
 
